@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokopia 交易查詢</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0f0ec;
+    --text: #1a1a1a;
+    --text2: #6b6b6b;
+    --text3: #9b9b9b;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --danger-bg: #fff0f0;
+    --danger: #b22222;
+    --danger-border: rgba(178,34,34,0.3);
+    --success-bg: #e8f7e8;
+    --success: #2a6b2a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f5f5f5;
+      --text2: #ababab;
+      --text3: #6b6b6b;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .page { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem; }
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; }
+  .logo { font-size: 22px; font-weight: 600; color: var(--text); }
+  .sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .nav { display: flex; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .nav button { padding: 8px 20px; font-size: 13px; cursor: pointer; border: none; background: transparent; color: var(--text2); transition: all 0.15s; }
+  .nav button.active { background: var(--text); color: var(--bg); }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .fg { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+  .fl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
+  input[type=text], input[type=number], input[type=password], select, textarea {
+    font-size: 13px; padding: 8px 10px; border: 0.5px solid var(--border2);
+    border-radius: var(--radius); background: var(--bg); color: var(--text); width: 100%;
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--text2); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.125rem; }
+  .card-head { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .iname { font-size: 14px; font-weight: 600; color: var(--text); }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 500; white-space: nowrap; }
+  .craft-pill { background: var(--success-bg); color: var(--success); border: 0.5px solid rgba(42,107,42,0.3); }
+  .price-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .base-p { font-size: 13px; color: var(--text2); }
+  .arr { font-size: 12px; color: var(--text3); }
+  .bonus-v { font-size: 13px; font-weight: 600; color: #c0392b; }
+  .tpill { font-size: 11px; padding: 1px 7px; border-radius: 100px; font-weight: 500; }
+  .edit-btn { font-size: 11px; padding: 2px 8px; cursor: pointer; border: 0.5px solid var(--border2); border-radius: var(--radius); background: transparent; color: var(--text2); margin-left: auto; white-space: nowrap; }
+  .empty { color: var(--text3); font-size: 13px; padding: 3rem; text-align: center; grid-column: 1/-1; }
+  .poke-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.125rem; }
+  .poke-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ptitle { font-size: 16px; font-weight: 600; }
+  .sec-lbl { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .igrid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .ie { display: flex; align-items: center; gap: 5px; background: var(--bg2); border-radius: var(--radius); padding: 4px 10px; }
+  .iname-sm { font-size: 12px; color: var(--text); }
+  .ip-up { font-size: 12px; font-weight: 600; color: #c0392b; }
+  .ip-neu { font-size: 12px; color: var(--text2); }
+  .hr { border: none; border-top: 0.5px solid var(--border); margin: 10px 0; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 1.5rem; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; }
+  .mrow { margin-bottom: 1rem; }
+  .mrow label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; }
+  .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mbtn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; padding-top: 1rem; border-top: 0.5px solid var(--border); }
+  .mbtn { font-size: 13px; padding: 8px 18px; cursor: pointer; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); transition: all 0.15s; }
+  .mbtn:hover { background: var(--bg2); }
+  .mbtn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .mbtn.primary:hover { opacity: 0.85; }
+  .mbtn.danger { color: var(--danger); border-color: var(--danger-border); }
+  .mbtn.danger:hover { background: var(--danger-bg); }
+  .admin-bar { background: #fff8e1; border: 0.5px solid #f0c000; border-radius: var(--radius-lg); padding: .75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .admin-bar span { font-size: 12px; color: #7a5c00; flex: 1; }
+  .bonus-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+  .bonus-row select { flex: 1; }
+  .bonus-row input { width: 100px; }
+  .pb-del { font-size: 12px; color: var(--danger); cursor: pointer; border: none; background: transparent; padding: 4px; }
+  .loading { text-align: center; padding: 3rem; color: var(--text3); font-size: 14px; grid-column: 1/-1; }
+  .error-msg { font-size: 12px; color: var(--danger); margin-top: 4px; }
+  .type-hint { font-size: 11px; color: var(--text3); line-height: 1.7; margin-top: 4px; }
+  .admin-section { margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div>
+      <div class="logo">Pokopia 交易查詢</div>
+      <div class="sub">可能有誤 &gt;&lt; 僅供參考，請依實際交易情況判斷！</div>
+    </div>
+    <div class="nav">
+      <button class="active" onclick="switchTab('item')">選物品</button>
+      <button onclick="switchTab('poke')">選寶可夢</button>
+    </div>
+  </div>
+
+  <div id="admin-bar" style="display:none">
+    <div class="admin-bar">
+      <span>編輯模式</span>
+      <button class="mbtn" onclick="openItemForm(null)">+ 新增物品</button>
+      <button class="mbtn" onclick="openPokeForm(null)">+ 新增寶可夢</button>
+    </div>
+  </div>
+
+  <div id="item-tab">
+    <div class="filters">
+      <div class="fg"><div class="fl">搜尋物品</div><input type="text" id="item-search" placeholder="物品名稱..." oninput="renderItems()"></div>
+      <div class="fg"><div class="fl">物品種類</div><select id="kind-filter" onchange="renderItems()"><option value="">所有種類</option></select></div>
+    </div>
+    <div class="grid" id="item-results"><div class="loading">載入中...</div></div>
+  </div>
+
+  <div id="poke-tab" style="display:none">
+    <div class="filters">
+      <div class="fg"><div class="fl">選擇寶可夢</div><select id="poke-select" onchange="renderPoke()"><option value="">選擇寶可夢...</option></select></div>
+      <div class="fg"><div class="fl">物品種類</div><select id="poke-kind-filter" onchange="renderPoke()"><option value="">所有種類</option></select></div>
+    </div>
+    <div id="poke-result"></div>
+  </div>
+</div>
+
+<!-- 密碼 Modal -->
+<div class="modal-overlay" id="pw-modal">
+  <div class="modal" style="max-width:360px">
+    <h3>管理員登入</h3>
+    <div class="mrow"><label>密碼</label><input type="password" id="pw-input" placeholder="輸入密碼..."></div>
+    <div class="error-msg" id="pw-err" style="display:none">密碼錯誤</div>
+    <div class="mbtn-row">
+      <button class="mbtn" onclick="closePwModal()">取消</button>
+      <button class="mbtn primary" onclick="checkPw()">登入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 物品 Modal -->
+<div class="modal-overlay" id="item-modal">
+  <div class="modal">
+    <h3 id="item-modal-title">新增物品</h3>
+    <div class="mgrid">
+      <div class="mrow"><label>物品名稱</label><input type="text" id="f-name" placeholder="物品名稱"></div>
+      <div class="mrow"><label>基本價（無則留空）</label><input type="number" id="f-base" placeholder="數字"></div>
+      <div class="mrow"><label>物品種類</label>
+        <select id="f-kind">
+          <option>基礎素材</option><option>掉落物</option><option>休憩家具</option>
+          <option>工具</option><option>食物</option><option>地塊</option>
+          <option>遺失物</option><option>活動限定</option><option>其他</option>
+        </select>
+      </div>
+      <div class="mrow"><label>可製作？</label>
+        <select id="f-craftable"><option value="0">否</option><option value="1">是</option></select>
+      </div>
+      <div class="mrow" style="grid-column:1/-1"><label>製作材料</label><input type="text" id="f-mat" placeholder="例：棉花、寶可金屬"></div>
+    </div>
+    <div class="mrow">
+      <label>特殊交易價格（僅填有加成的寶可夢）</label>
+      <div id="bonus-rows" style="margin-top:8px"></div>
+      <button class="mbtn" style="margin-top:8px;font-size:12px" onclick="addBonusRow()">+ 新增寶可夢加成</button>
+    </div>
+    <div class="mbtn-row">
+      <button class="mbtn danger" id="f-del-btn" style="display:none;margin-right:auto" onclick="deleteItem()">刪除物品</button>
+      <button class="mbtn" onclick="closeItemModal()">取消</button>
+      <button class="mbtn primary" onclick="saveItem()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 寶可夢 Modal -->
+<div class="modal-overlay" id="poke-modal">
+  <div class="modal" style="max-width:440px">
+    <h3 id="poke-modal-title">新增寶可夢</h3>
+    <div class="mrow"><label>寶可夢名稱</label><input type="text" id="pf-name" placeholder="寶可夢名稱"></div>
+    <div class="mrow"><label>屬性（逗號分隔，最多2個）</label><input type="text" id="pf-types" placeholder="例：水,岩石"></div>
+    <div class="mrow"><label>屬性顏色（逗號分隔）</label><input type="text" id="pf-colors" placeholder="例：#0094e5,#a07850"></div>
+    <div class="type-hint">
+      一般 #a0a0a0 ・ 火 #ff3700 ・ 水 #0094e5 ・ 冰 #00b7ee ・ 草 #92bf19 ・ 電 #e4b700<br>
+      毒 #be78be ・ 蟲 #32b432 ・ 惡 #646464 ・ 超能力 #dc78c8 ・ 格鬥 #c85500 ・ 鋼 #96b4dc<br>
+      地面 #cca142 ・ 岩石 #a07850 ・ 龍 #3c64c8 ・ 妖精 #ff7eb8 ・ 幽靈 #8c78f0 ・ 飛行 #79bcd7
+    </div>
+    <div class="mbtn-row">
+      <button class="mbtn danger" id="pf-del-btn" style="display:none;margin-right:auto" onclick="deletePoke()">刪除寶可夢</button>
+      <button class="mbtn" onclick="closePokeModal()">取消</button>
+      <button class="mbtn primary" onclick="savePoke()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+const ADMIN_PW = 'admin123';
+
+const KIND_COLORS = {
+  '基礎素材': { bg: '#ede8f7', color: '#6b3fa0' },
+  '掉落物':   { bg: '#fde8e8', color: '#a02020' },
+  '休憩家具': { bg: '#e8f0fd', color: '#1a4fa0' },
+  '工具':     { bg: '#fdf4e0', color: '#8a6000' },
+  '食物':     { bg: '#fde8f3', color: '#a03060' },
+  '地塊':     { bg: '#f2eddf', color: '#6b5020' },
+  '遺失物':   { bg: '#e8f7e8', color: '#2a6b2a' },
+  '活動限定': { bg: '#f7e8ed', color: '#8a1040' },
+  '其他':     { bg: '#efefef', color: '#505050' },
+};
+
+let items = [], pokes = [], isAdmin = false, editingItemId = null, editingPokeName = null;
+
+async function loadData() {
+  document.getElementById('item-results').innerHTML = '<div class="loading">載入資料中...</div>';
+  try {
+    const res = await fetch(API_URL + '?action=getAll');
+    const data = await res.json();
+    items = data.items || [];
+    pokes = data.pokes || [];
+    initSelects();
+    renderItems();
+  } catch (e) {
+    document.getElementById('item-results').innerHTML = '<div class="empty">⚠ 無法載入資料，請確認 API_URL 設定正確</div>';
+  }
+}
+
+async function apiPost(body) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ ...body, password: ADMIN_PW })
+  });
+  return res.json();
+}
+
+function ks(k) {
+  const s = KIND_COLORS[k] || KIND_COLORS['其他'];
+  return `background:${s.bg};color:${s.color}`;
+}
+
+function typeTag(p) {
+  if (!p) return '';
+  return p.types.map((t, i) =>
+    `<span class="tpill" style="background:${p.colors[i]}22;color:${p.colors[i]};border:0.5px solid ${p.colors[i]}55">${t}</span>`
+  ).join(' ');
+}
+
+function initSelects() {
+  const ps = document.getElementById('poke-select');
+  ps.innerHTML = '<option value="">選擇寶可夢...</option>';
+  pokes.forEach(p => ps.innerHTML += `<option value="${p.name}">${p.name}</option>`);
+  const kinds = [...new Set(items.map(i => i.kind))];
+  ['kind-filter', 'poke-kind-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">所有種類</option>';
+    kinds.forEach(k => el.innerHTML += `<option value="${k}">${k}</option>`);
+  });
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.nav button').forEach((b, i) =>
+    b.classList.toggle('active', (t === 'item' && i === 0) || (t === 'poke' && i === 1))
+  );
+  document.getElementById('item-tab').style.display = t === 'item' ? '' : 'none';
+  document.getElementById('poke-tab').style.display = t === 'poke' ? '' : 'none';
+  if (t === 'poke') renderPoke();
+}
+
+function renderItems() {
+  const search = document.getElementById('item-search').value.toLowerCase();
+  const kf = document.getElementById('kind-filter').value;
+  const filtered = items.filter(it => {
+    if (search && !it.name.includes(search)) return false;
+    if (kf && it.kind !== kf) return false;
+    return true;
+  });
+  const el = document.getElementById('item-results');
+  if (!filtered.length) { el.innerHTML = '<div class="empty">沒有符合條件的物品</div>'; return; }
+  el.innerHTML = filtered.map(it => {
+    const bonusEntries = Object.entries(it.prices || {}).filter(([, pr]) => it.base !== null && pr > it.base);
+    const bonusPrices = [...new Set(bonusEntries.map(([, pr]) => pr))].sort((a, b) => a - b);
+    const bonusPokeHtml = bonusEntries.map(([pn]) => {
+      const p = pokes.find(x => x.name === pn);
+      return `<span class="tpill" style="background:${p ? p.colors[0] + '22' : '#eee'};color:${p ? p.colors[0] : '#888'};border:0.5px solid ${p ? p.colors[0] + '55' : '#ccc'}">${pn}</span>`;
+    }).join(' ');
+    const priceHtml = it.base !== null && it.base !== undefined
+      ? (bonusPrices.length
+          ? `<span class="base-p">${it.base}</span><span class="arr">→</span><span class="bonus-v">${bonusPrices.join(' / ')}</span>`
+          : `<span class="base-p">${it.base}</span>`)
+      : `<span class="base-p">—</span>`;
+    const craftTag = it.craftable ? `<span class="pill craft-pill">可製作${it.mat ? ' · ' + it.mat : ''}</span>` : '';
+    const editBtn = isAdmin ? `<button class="edit-btn" onclick="openItemForm(${it.id})">編輯</button>` : '';
+    return `<div class="card">
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div class="card-head">
+          <span class="iname">${it.name}</span>
+          <span class="pill" style="${ks(it.kind)}">${it.kind}</span>
+          ${craftTag}
+          ${editBtn}
+        </div>
+        <div class="price-row">
+          ${priceHtml}
+          ${bonusPokeHtml ? `<span class="arr">·</span>${bonusPokeHtml}` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPoke() {
+  const pname = document.getElementById('poke-select').value;
+  const kf = document.getElementById('poke-kind-filter').value;
+  const el = document.getElementById('poke-result');
+  if (!pname) { el.innerHTML = '<div class="empty">請選擇一隻寶可夢</div>'; return; }
+  const p = pokes.find(x => x.name === pname);
+  const filtered = items.filter(it => !kf || it.kind === kf);
+  const bonus = filtered.filter(it => it.prices[pname] && it.base !== null && it.prices[pname] > it.base);
+  const normal = filtered.filter(it => !bonus.includes(it) && it.base !== null);
+  const editBtn = isAdmin ? `<button class="edit-btn" onclick="openPokeForm('${pname}')">編輯寶可夢</button>` : '';
+  el.innerHTML = `<div class="poke-card">
+    <div class="poke-head">
+      <span class="ptitle">${pname}</span>
+      ${typeTag(p)}
+      ${editBtn}
+    </div>
+    ${bonus.length ? `<div class="sec-lbl" style="color:#c0392b">特別喜好（價格加成）</div>
+    <div class="igrid" style="margin-bottom:12px">${bonus.map(it =>
+      `<div class="ie"><span class="pill" style="${ks(it.kind)};font-size:10px;padding:1px 6px">${it.kind}</span><span class="iname-sm">${it.name}</span><span class="ip-up">${it.prices[pname]} ↑</span></div>`
+    ).join('')}</div>` : ''}
+    ${bonus.length && normal.length ? '<hr class="hr">' : ''}
+    ${normal.length ? `<div class="sec-lbl">一般交易（原價）</div>
+    <div class="igrid">${normal.map(it =>
+      `<div class="ie"><span class="pill" style="${ks(it.kind)};font-size:10px;padding:1px 6px">${it.kind}</span><span class="iname-sm">${it.name}</span><span class="ip-neu">${it.base}</span></div>`
+    ).join('')}</div>` : ''}
+  </div>`;
+}
+
+function checkAdminMode() {
+  const isAdminMode = location.search.includes('admin') || location.hash.includes('admin');
+  if (isAdminMode) {
+    document.getElementById('pw-modal').classList.add('open');
+    document.getElementById('pw-input').focus();
+  }
+}
+
+function closePwModal() {
+  document.getElementById('pw-modal').classList.remove('open');
+  if (!isAdmin && (location.search.includes('admin') || location.hash.includes('admin'))) {
+    history.replaceState(null, '', location.pathname);
+  }
+}
+
+function checkPw() {
+  if (document.getElementById('pw-input').value === ADMIN_PW) {
+    isAdmin = true;
+    closePwModal();
+    document.getElementById('admin-bar').style.display = '';
+    renderItems();
+  } else {
+    document.getElementById('pw-err').style.display = '';
+  }
+}
+
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPw(); });
+
+function addBonusRow(pokeName, price) {
+  const row = document.createElement('div');
+  row.className = 'bonus-row';
+  const opts = pokes.map(p => `<option value="${p.name}"${p.name === pokeName ? ' selected' : ''}>${p.name}</option>`).join('');
+  row.innerHTML = `<select><option value="">選擇寶可夢</option>${opts}</select><input type="number" placeholder="特殊價格" value="${price || ''}"><button class="pb-del" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('bonus-rows').appendChild(row);
+}
+
+function openItemForm(id) {
+  editingItemId = id;
+  document.getElementById('item-modal-title').textContent = id ? '編輯物品' : '新增物品';
+  document.getElementById('f-del-btn').style.display = id ? '' : 'none';
+  document.getElementById('bonus-rows').innerHTML = '';
+  if (id) {
+    const it = items.find(x => x.id == id);
+    document.getElementById('f-name').value = it.name;
+    document.getElementById('f-base').value = it.base !== null ? it.base : '';
+    document.getElementById('f-kind').value = it.kind;
+    document.getElementById('f-craftable').value = it.craftable ? '1' : '0';
+    document.getElementById('f-mat').value = it.mat || '';
+    Object.entries(it.prices || {}).forEach(([p, pr]) => addBonusRow(p, pr));
+  } else {
+    ['f-name', 'f-base', 'f-mat'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-kind').value = '基礎素材';
+    document.getElementById('f-craftable').value = '0';
+  }
+  document.getElementById('item-modal').classList.add('open');
+}
+
+function closeItemModal() { document.getElementById('item-modal').classList.remove('open'); }
+
+async function saveItem() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) return;
+  const base = document.getElementById('f-base').value ? Number(document.getElementById('f-base').value) : null;
+  const kind = document.getElementById('f-kind').value;
+  const craftable = document.getElementById('f-craftable').value === '1';
+  const mat = document.getElementById('f-mat').value.trim();
+  const prices = {};
+  document.querySelectorAll('#bonus-rows .bonus-row').forEach(row => {
+    const sel = row.querySelector('select').value;
+    const val = row.querySelector('input').value;
+    if (sel && val) prices[sel] = Number(val);
+  });
+  const item = { id: editingItemId || 0, name, base, kind, craftable, mat, prices };
+  const res = await apiPost({ action: 'saveItem', item });
+  if (res.ok) {
+    await loadData();
+    closeItemModal();
+  } else { alert('儲存失敗：' + (res.error || '未知錯誤')); }
+}
+
+async function deleteItem() {
+  if (!confirm('確定要刪除這個物品嗎？')) return;
+  const res = await apiPost({ action: 'deleteItem', id: editingItemId });
+  if (res.ok) { await loadData(); closeItemModal(); }
+  else alert('刪除失敗：' + (res.error || '未知錯誤'));
+}
+
+function openPokeForm(name) {
+  editingPokeName = name;
+  document.getElementById('poke-modal-title').textContent = name ? '編輯寶可夢' : '新增寶可夢';
+  document.getElementById('pf-del-btn').style.display = name ? '' : 'none';
+  if (name) {
+    const p = pokes.find(x => x.name === name);
+    document.getElementById('pf-name').value = p.name;
+    document.getElementById('pf-types').value = p.types.join(',');
+    document.getElementById('pf-colors').value = p.colors.join(',');
+  } else {
+    ['pf-name', 'pf-types', 'pf-colors'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('poke-modal').classList.add('open');
+}
+
+function closePokeModal() { document.getElementById('poke-modal').classList.remove('open'); }
+
+async function savePoke() {
+  const name = document.getElementById('pf-name').value.trim();
+  if (!name) return;
+  const types = document.getElementById('pf-types').value.split(',').map(s => s.trim()).filter(Boolean);
+  const colors = document.getElementById('pf-colors').value.split(',').map(s => s.trim()).filter(Boolean);
+  const res = await apiPost({ action: 'savePoke', poke: { name, types, colors }, oldName: editingPokeName });
+  if (res.ok) { await loadData(); closePokeModal(); }
+  else alert('儲存失敗：' + (res.error || '未知錯誤'));
+}
+
+async function deletePoke() {
+  if (!confirm('確定要刪除這隻寶可夢嗎？')) return;
+  const res = await apiPost({ action: 'deletePoke', name: editingPokeName });
+  if (res.ok) { await loadData(); closePokeModal(); }
+  else alert('刪除失敗：' + (res.error || '未知錯誤'));
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+checkAdminMode();
+loadData();
+</script>
+</body>
+</html>
